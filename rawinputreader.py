@@ -241,7 +241,8 @@ class rawinputreader:
         rect = RECT()
     
         #print messageId2Name.get(message, '?:'+str(message))
-        WM_INPUT = 255
+        WM_INPUT = 255 #0x00ff 
+        #WM_POINTER hat andere: https://social.msdn.microsoft.com/Forums/windowsdesktop/en-US/b8cb28dd-b2ba-4392-b3a8-6bf18518087f/windows-8-wmpointer-vs-wmtouch?forum=tabletandtouch
         if message == win32con.WM_DESTROY:
             windll.user32.PostQuitMessage(0)
             return 0
