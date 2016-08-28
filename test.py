@@ -3,7 +3,10 @@ import sys
 from ctypes import *
 from ctypes.wintypes import *
 from win32api import LOWORD
+from win32gui import *
+import win32api
 
+xrange = range
 WNDPROC = WINFUNCTYPE(c_long, c_int, c_uint, c_int, c_int)
 GetPointerPenInfo = windll.user32.GetPointerPenInfo
 
@@ -76,7 +79,7 @@ class POINTER_PEN_INFO(Structure):
         ('tiltY', c_int32),
     
     ]
-
+'''
 class WNDCLASS(Structure):
     _fields_ = [('style', c_uint),
                 ('lpfnWndProc', WNDPROC),
@@ -88,7 +91,7 @@ class WNDCLASS(Structure):
                 ('hbrBackground', c_int),
                 ('lpszMenuName', c_char_p),
                 ('lpszClassName', c_char_p)]
-
+'''
 class RECT(Structure):
     _fields_ = [('left', c_long),
                 ('top', c_long),
@@ -130,44 +133,80 @@ def MainWin():
     wndclass = WNDCLASS()
     wndclass.style = win32con.CS_HREDRAW | win32con.CS_VREDRAW
     wndclass.lpfnWndProc = WNDPROC(WndProc)
-    wndclass.cbClsExtra = wndclass.cbWndExtra = 0
-    wndclass.hInstance = windll.kernel32.GetModuleHandleA(c_int(win32con.NULL))
-    wndclass.hIcon = windll.user32.LoadIconA(c_int(win32con.NULL), c_int(win32con.IDI_APPLICATION))
-    wndclass.hCursor = windll.user32.LoadCursorA(c_int(win32con.NULL), c_int(win32con.IDC_ARROW))
-    wndclass.hbrBackground = windll.gdi32.GetStockObject(c_int(win32con.WHITE_BRUSH))
-    wndclass.lpszMenuName = None
+    #wndclass.cbClsExtra = 
+    wndclass.cbWndExtra = 0
+    wndclass.hInstance = win32api.GetModuleHandle(None)
+    wndclass.hIcon = LoadIcon(c_int(win32con.NULL).value,c_int(win32con.IDI_APPLICATION).value)
+    #wndclass.hIcon = windll.user32.LoadIconA(c_int(win32con.NULL), c_int(win32con.IDI_APPLICATION))
+    wndclass.hCursor = LoadCursor(c_int(win32con.NULL).value, c_int(win32con.IDC_ARROW).value)
+    #wndclass.hCursor = windll.user32.LoadCursorA(c_int(win32con.NULL), c_int(win32con.IDC_ARROW))
+    wndclass.hbrBackground = GetStockObject(c_int(win32con.WHITE_BRUSH).value)
+    #wndclass.hbrBackground = windll.gdi32.GetStockObject(c_int(win32con.WHITE_BRUSH))
+    wndclass.lpszMenuName = ""
     wndclass.lpszClassName = "MainWin"
     # Register Window Class
-    if not windll.user32.RegisterClassA(byref(wndclass)):
-        raise WinError()
+    
+    RegisterClass(wndclass)
+    
+    #if not RegisterClass(wndclass):
+    #    raise WinError()
+    #if not windll.user32.RegisterClassA(byref(wndclass)):
+    #    raise WinError()
     # Create Window
-    hwnd = CreateWindowEx(0,
+    print(type(win32con.NULL))
+    hwnd = CreateWindow (
                           wndclass.lpszClassName,
                           "Python Window",
-                          win32con.WS_OVERLAPPEDWINDOW,
+                          win32con.WS_OVERLAPPED | win32con.WS_VISIBLE,
+                          0,
+                          0,
                           win32con.CW_USEDEFAULT,
                           win32con.CW_USEDEFAULT,
-                          win32con.CW_USEDEFAULT,
-                          win32con.CW_USEDEFAULT,
-                          win32con.NULL,
-                          win32con.NULL,
+                          0,
+                          0,
                           wndclass.hInstance,
-                          win32con.NULL)
+                          None
+                          )
+    print("test1")
+    # hwnd = CreateWindowEx(0,
+                          # wndclass.lpszClassName,
+                          # "Python Window",
+                          # win32con.WS_OVERLAPPEDWINDOW,
+                          # win32con.CW_USEDEFAULT,
+                          # win32con.CW_USEDEFAULT,
+                          # win32con.CW_USEDEFAULT,
+                          # win32con.CW_USEDEFAULT,
+                          # win32con.NULL,
+                          # win32con.NULL,
+                          # wndclass.hInstance,
+                          # win32con.NULL)
+    
+    
+    
     # Show Window
-    #windll.user32.ShowWindow(c_int(hwnd), c_int(win32con.SW_SHOWNORMAL))
-    #windll.user32.UpdateWindow(c_int(hwnd))
+    #ShowWindow(hwnd, win32con.SW_SHOWNORMAL)
+    print("test2")
+    UpdateWindow(hwnd)
+    print("test3")
+    SetWindowPos(hwnd, win32con.HWND_TOPMOST, -1200, 10, 500, 500, win32con.SWP_SHOWWINDOW)
+    #SetWindowPlacement(hwnd,(0,0,(0,0),(0,0),(50,20,500,500)))
     # Pump Messages
-    msg = MSG()
-    pMsg = pointer(msg)
-    NULL = c_int(win32con.NULL)
+    #msg = MSG()
+    #pMsg = pointer(msg)
+    #NULL = c_int(win32con.NULL)
     print("EnableMousePointerMessage: ",windll.user32.EnableMouseInPointer(BOOL(True)))
     print("Enabled?: ", windll.user32.IsMouseInPointerEnabled())
+    sucval,pMsg = GetMessage(hwnd,0,0)
+    while sucval:
+        sucval,pMsg = GetMessage(hwnd,0,0)
+        #print(pMsg)
+        TranslateMessage(pMsg)
+        DispatchMessage(pMsg)
+    # while windll.user32.GetMessageA( pMsg, NULL, 0, 0) != 0:
+        # windll.user32.TranslateMessage(pMsg)
+        # windll.user32.DispatchMessageA(pMsg)
 
-    while windll.user32.GetMessageA( pMsg, NULL, 0, 0) != 0:
-        windll.user32.TranslateMessage(pMsg)
-        windll.user32.DispatchMessageA(pMsg)
-
-    return msg.wParam
+    #return pMsg.wParam
     
 def WndProc(hwnd, message, wParam, lParam):
     penstruct = POINTER_PEN_INFO()
@@ -176,24 +215,33 @@ def WndProc(hwnd, message, wParam, lParam):
     rect = RECT()
     WM_POINTERUPDATE = 0x0245
     if message == win32con.WM_PAINT:
-        hdc = windll.user32.BeginPaint(c_int(hwnd), byref(ps))
-        windll.user32.GetClientRect(c_int(hwnd), byref(rect))
-        windll.user32.DrawTextA(c_int(hdc),
-                                "Python Powered Windows" ,
-                                c_int(-1), byref(rect), 
-                                win32con.DT_SINGLELINE|win32con.DT_CENTER|win32con.DT_VCENTER)
-        windll.user32.EndPaint(c_int(hwnd), byref(ps))
+        hdc, ps = BeginPaint(hwnd)
+        #hdc = windll.user32.BeginPaint(c_int(hwnd), byref(ps))
+        rect = GetClientRect(hwnd)
+        #windll.user32.GetClientRect(c_int(hwnd), byref(rect))
+        DrawText(hdc, "Python Powered by Windows", -1,rect,win32con.DT_SINGLELINE|win32con.DT_CENTER|win32con.DT_VCENTER)
+        # windll.user32.DrawTextA(c_int(hdc),
+                                # "Python Powered Windows" ,
+                                # c_int(-1), byref(rect), 
+                                # win32con.DT_SINGLELINE|win32con.DT_CENTER|win32con.DT_VCENTER)
+        EndPaint(hwnd,ps)
+        #windll.user32.EndPaint(c_int(hwnd), byref(ps))
         return 0
     elif message == WM_POINTERUPDATE:
         pointerID = GET_POINTERID_WPARAM(wParam)
         if GetPointerPenInfo(pointerID,pointpenst) != 0:
-            print(penstruct.pointerInfo.ptPixelLocation.x)
-        print("yo")
+            print("X: ",penstruct.pointerInfo.ptPixelLocation.x,"\nY: ",penstruct.pointerInfo.ptPixelLocation.y)
+            print("Pressure: ",penstruct.pressure)
+        #print("yo")
     elif message == win32con.WM_DESTROY:
-        windll.user32.PostQuitMessage(0)
+        PostQuitMessage(0)
+        #windll.user32.PostQuitMessage(0)
         return 0
 
-    return windll.user32.DefWindowProcA(c_int(hwnd), c_int(message), c_int(wParam), c_int(lParam))
+    return DefWindowProc(c_int(hwnd).value, 
+                        c_int(message).value, 
+                        c_int(wParam).value, 
+                        c_long(lParam).value)
 
 if __name__=='__main__':
     sys.exit(MainWin())
